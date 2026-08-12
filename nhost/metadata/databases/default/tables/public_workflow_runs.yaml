@@ -1,0 +1,66 @@
+table:
+  name: workflow_runs
+  schema: public
+
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+  - name: organization
+    using:
+      foreign_key_constraint_on: org_id
+
+array_relationships:
+  - name: step_runs
+    using:
+      foreign_key_constraint_on:
+        column: run_id
+        table:
+          name: step_runs
+          schema: public
+
+# viewers can watch runs but cannot start them
+# org_id is always set by the Action handler, never from client input
+select_permissions:
+  - role: viewer
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              user_id:
+                _eq: X-Hasura-User-Id
+      columns:
+        - id
+        - workflow_id
+        - org_id
+        - status
+        - trigger_type
+        - resume_index
+        - started_at
+        - finished_at
+        - created_at
+  - role: editor
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _in: [editor, owner]
+      columns: "*"
+  - role: owner
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _eq: owner
+      columns: "*"

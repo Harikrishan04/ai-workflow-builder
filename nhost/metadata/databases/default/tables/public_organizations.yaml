@@ -1,0 +1,90 @@
+table:
+  name: organizations
+  schema: public
+
+# ---------- Computed Fields ----------
+computed_fields:
+  - name: quota_this_month
+    definition:
+      function:
+        name: org_quota_this_month
+        schema: public
+    comment: "Returns calls_used, calls_allowed, reset_at for this org"
+
+# ---------- Relationships ----------
+array_relationships:
+  - name: org_members
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: org_members
+          schema: public
+  - name: workflows
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: workflows
+          schema: public
+  - name: workflow_runs
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: workflow_runs
+          schema: public
+
+# ---------- Permissions ----------
+# LAYER 1: Every role is filtered through org_members join.
+# This ensures Org B users cannot see Org A rows even with correct UUIDs.
+
+select_permissions:
+  - role: viewer
+    permission:
+      filter:
+        org_members:
+          user_id:
+            _eq: X-Hasura-User-Id
+      columns:
+        - id
+        - name
+        - quota_limit
+        - quota_used
+        - quota_reset_at
+        - created_at
+  - role: editor
+    permission:
+      filter:
+        org_members:
+          user_id:
+            _eq: X-Hasura-User-Id
+      columns:
+        - id
+        - name
+        - quota_limit
+        - quota_used
+        - quota_reset_at
+        - created_at
+  - role: owner
+    permission:
+      filter:
+        org_members:
+          user_id:
+            _eq: X-Hasura-User-Id
+      columns: "*"
+
+update_permissions:
+  - role: owner
+    permission:
+      filter:
+        org_members:
+          _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - role:
+                _eq: owner
+      check: {}
+      columns:
+        - name
+        - quota_limit

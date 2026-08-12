@@ -1,0 +1,142 @@
+table:
+  name: workflow_steps
+  schema: public
+
+# ---------- Relationships ----------
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+
+# ---------- Permissions ----------
+# LAYER 1 + STEP-LEVEL GATING:
+# editor INSERT has an additional check: step_type cannot be
+# 'db_write' or 'notify' — only owner can add those.
+# This is the DB-level enforcement of the step type restriction.
+
+select_permissions:
+  - role: viewer
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              user_id:
+                _eq: X-Hasura-User-Id
+      columns:
+        - id
+        - workflow_id
+        - step_order
+        - step_type
+        - config
+  - role: editor
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _in: [editor, owner]
+      columns: "*"
+  - role: owner
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _eq: owner
+      columns: "*"
+
+insert_permissions:
+  # editor can insert, but NOT db_write or notify steps
+  - role: editor
+    permission:
+      check:
+        _and:
+          - workflow:
+              organization:
+                org_members:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        _in: [editor, owner]
+          - step_type:
+              _nin: [db_write, notify]   # LAYER 1 step-type gating
+      columns:
+        - workflow_id
+        - step_order
+        - step_type
+        - config
+  - role: owner
+    permission:
+      check:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _eq: owner
+      columns:
+        - workflow_id
+        - step_order
+        - step_type
+        - config
+
+update_permissions:
+  - role: editor
+    permission:
+      filter:
+        _and:
+          - workflow:
+              organization:
+                org_members:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        _in: [editor, owner]
+          - step_type:
+              _nin: [db_write, notify]
+      check: {}
+      columns:
+        - step_order
+        - config
+  - role: owner
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _eq: owner
+      check: {}
+      columns:
+        - step_order
+        - step_type
+        - config
+
+delete_permissions:
+  - role: owner
+    permission:
+      filter:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _eq: owner
