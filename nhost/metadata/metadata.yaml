@@ -1,0 +1,9 @@
+version: 3
+sources:
+  - "!include databases/databases.yaml"
+actions:
+  - "!include actions.yaml"
+custom_types:
+  - "!include actions.yaml"
+cron_triggers:
+  - "!include cron_triggers.yaml"
