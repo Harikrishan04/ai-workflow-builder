@@ -5,38 +5,59 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useQuery } from 'urql';
 import Link from 'next/link';
-import { LogOut, Plus } from 'lucide-react';
+import { LogOut, Plus, Zap } from 'lucide-react';
+import { useOrgRole } from '../../hooks/useOrgRole';
+import type { Workflow } from '../../types';
 
-const WORKFLOWS_QUERY = `
-  query GetWorkflows {
-    workflows(order_by: { updated_at: desc }) {
-      id
-      name
-      description
-      updated_at
+/**
+ * FIX: Query org info directly from org_members so quota
+ * is always visible even when there are zero workflows.
+ * Previously it was extracted from workflows[0] which broke
+ * on empty orgs.
+ */
+const DASHBOARD_QUERY = `
+  query GetDashboard {
+    org_members {
+      role
       organization {
+        id
         name
-        quota_this_month {
-          calls_used
-          calls_allowed
+        quota_used
+        quota_limit
+        quota_reset_at
+        workflows(order_by: { updated_at: desc }) {
+          id
+          name
+          description
+          updated_at
+          workflow_runs(limit: 1, order_by: { created_at: desc }) {
+            id
+            status
+            created_at
+          }
         }
-      }
-      workflow_runs(limit: 1, order_by: { created_at: desc }) {
-        status
-        created_at
       }
     }
   }
 `;
+
+const STATUS_COLORS: Record<string, string> = {
+  completed: 'var(--success)',
+  failed: 'var(--danger)',
+  running: 'var(--primary)',
+  paused: '#e3b341',
+  pending: 'var(--text-muted)',
+};
 
 export default function Dashboard() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const user = useUserData();
   const { signOut } = useSignOut();
   const router = useRouter();
+  const { canTrigger } = useOrgRole();
 
   const [result] = useQuery({
-    query: WORKFLOWS_QUERY,
+    query: DASHBOARD_QUERY,
     pause: !isAuthenticated,
   });
 
@@ -46,76 +67,147 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading || !isAuthenticated) return <div className="container">Loading...</div>;
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="container" style={{ display: 'flex', justifyContent: 'center', marginTop: '100px' }}>
+        Loading...
+      </div>
+    );
+  }
 
   const { data, fetching, error } = result;
-  
-  // We extract quota from the first workflow's organization since Layer 1 
-  // ensures we only see workflows from our org. (A real app would query it separately).
-  const org = data?.workflows?.[0]?.organization;
+  const membership = data?.org_members?.[0];
+  const org = membership?.org;
+  const workflows: Workflow[] = membership?.organization?.workflows ?? [];
+  const quotaUsed = membership?.organization?.quota_used ?? 0;
+  const quotaLimit = membership?.organization?.quota_limit ?? 1;
+  const quotaPct = Math.round((quotaUsed / quotaLimit) * 100);
 
   return (
     <div className="container">
-      <header className="flex justify-between items-center mb-4">
-        <div>
-          <h1 style={{ margin: 0 }}>Dashboard</h1>
-          <p className="text-muted" style={{ margin: '4px 0 0' }}>Welcome, {user?.email}</p>
+      {/* Header */}
+      <header
+        className="flex justify-between items-center"
+        style={{ marginBottom: '32px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center gap-4">
+          <Zap size={28} color="var(--primary)" />
+          <div>
+            <h1 style={{ margin: 0, fontSize: '22px' }}>AI Workflow Builder</h1>
+            <p style={{ margin: '2px 0 0', color: 'var(--text-muted)', fontSize: '13px' }}>
+              {user?.email} &nbsp;·&nbsp; {membership?.organization?.name}
+            </p>
+          </div>
         </div>
-        <button onClick={() => signOut()} className="flex items-center gap-2">
-          <LogOut size={16} /> Sign Out
+        <button
+          onClick={() => signOut()}
+          className="flex items-center gap-2"
+          style={{ fontSize: '13px' }}
+        >
+          <LogOut size={14} /> Sign Out
         </button>
       </header>
 
-      {org && (
-        <div className="card mb-4 flex items-center justify-between" style={{ backgroundColor: 'rgba(35, 134, 54, 0.1)', borderColor: 'var(--success)' }}>
+      {/* Quota Banner — always shown, even with zero workflows */}
+      {membership && (
+        <div
+          className="card flex justify-between items-center"
+          style={{ marginBottom: '24px', padding: '16px 20px' }}
+        >
           <div>
-            <strong>Organization: {org.name}</strong>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              Monthly API Quota
+            </div>
+            <strong style={{ fontSize: '16px' }}>
+              {quotaUsed} / {quotaLimit} calls used
+            </strong>
           </div>
-          <div>
-            Quota: {org.quota_this_month?.calls_used} / {org.quota_this_month?.calls_allowed} calls used
+          <div style={{ width: '200px' }}>
+            <div
+              style={{
+                height: '8px',
+                backgroundColor: 'var(--border)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${Math.min(quotaPct, 100)}%`,
+                  backgroundColor: quotaPct > 90 ? 'var(--danger)' : 'var(--primary)',
+                  borderRadius: '4px',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
+              {quotaPct}% used
+            </div>
           </div>
         </div>
       )}
 
-      <div className="flex justify-between items-center mt-4 mb-4">
-        <h2>Your Workflows</h2>
-        <Link href="/workflows/new">
-          <button className="primary flex items-center gap-2">
-            <Plus size={16} /> New Workflow
-          </button>
-        </Link>
+      {/* Workflows Header */}
+      <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
+        <h2 style={{ margin: 0 }}>Workflows</h2>
+        {/* FIX: Only owners/editors can create workflows */}
+        {canTrigger && (
+          <Link href="/workflows/new">
+            <button className="primary flex items-center gap-2">
+              <Plus size={16} /> New Workflow
+            </button>
+          </Link>
+        )}
       </div>
 
-      {fetching && <p>Loading workflows...</p>}
+      {fetching && <p style={{ color: 'var(--text-muted)' }}>Loading workflows...</p>}
       {error && <p style={{ color: 'var(--danger)' }}>Error: {error.message}</p>}
 
-      {data?.workflows?.length === 0 && (
-        <div className="card text-muted" style={{ textAlign: 'center', padding: '40px' }}>
-          No workflows found. Create your first workflow to get started.
+      {!fetching && workflows.length === 0 && (
+        <div
+          className="card"
+          style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}
+        >
+          <Zap size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+          <p style={{ margin: 0 }}>No workflows yet. Create your first one to get started.</p>
         </div>
       )}
 
       <div className="flex flex-col gap-4">
-        {data?.workflows?.map((wf: any) => (
-          <div key={wf.id} className="card flex justify-between items-center">
-            <div>
-              <h3 style={{ margin: '0 0 8px 0' }}>{wf.name}</h3>
-              <p className="text-muted" style={{ margin: 0, fontSize: '14px' }}>
-                {wf.description || 'No description'}
-              </p>
+        {workflows.map((wf: Workflow) => {
+          const lastRun = wf.workflow_runs?.[0];
+          return (
+            <div
+              key={wf.id}
+              className="card flex justify-between items-center"
+              style={{ padding: '16px 20px' }}
+            >
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '16px' }}>{wf.name}</h3>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                  {wf.description || 'No description'}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                {lastRun && (
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      color: STATUS_COLORS[lastRun.status] ?? 'var(--text-muted)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    ● {lastRun.status.toUpperCase()}
+                  </span>
+                )}
+                <Link href={`/workflows/${wf.id}`}>
+                  <button style={{ fontSize: '13px', padding: '6px 14px' }}>Open</button>
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              {wf.workflow_runs?.[0] && (
-                <span className="text-muted" style={{ fontSize: '12px' }}>
-                  Last run: <strong>{wf.workflow_runs[0].status}</strong>
-                </span>
-              )}
-              <Link href={`/workflows/${wf.id}`}>
-                <button>Open Builder</button>
-              </Link>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
