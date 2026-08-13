@@ -1,5 +1,5 @@
 - name: scheduled_workflow_runner
-  webhook: '{{NHOST_FUNCTIONS_URL}}/scheduled-runner'
+  webhook: 'https://ibihgkettpjhsjxndalv.functions.ap-south-1.nhost.run/v1/scheduled-runner'
   schedule: '* * * * *'
   include_in_metadata: true
   payload: {}
