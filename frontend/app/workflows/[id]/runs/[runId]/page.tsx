@@ -17,29 +17,26 @@ import type { StepRun, RunStatus } from '../../../../../types';
 
 const STEP_RUNS_SUBSCRIPTION = `
   subscription MonitorRun($run_id: uuid!) {
-    step_runs(
-      where: { run_id: { _eq: $run_id } }
-      order_by: { step_order: asc }
-    ) {
-      id
-      step_order
-      status
-      input
-      output
-      error
-      attempt_count
-      approved_by
-      approved_at
-      workflow_step {
-        step_type
-        config
-      }
-    }
     workflow_runs_by_pk(id: $run_id) {
       id
       status
       started_at
       finished_at
+      step_runs(order_by: { step_order: asc }) {
+        id
+        step_order
+        status
+        input
+        output
+        error
+        attempt_count
+        approved_by
+        approved_at
+        workflow_step {
+          step_type
+          config
+        }
+      }
     }
   }
 `;
@@ -121,8 +118,8 @@ export default function RunMonitor({
     );
   }
 
-  const stepRuns: StepRun[] = subResult.data?.step_runs ?? [];
   const run = subResult.data?.workflow_runs_by_pk;
+  const stepRuns: StepRun[] = run?.step_runs ?? [];
   const runStatus: RunStatus = run?.status ?? 'pending';
   const statusStyle = RUN_STATUS_STYLES[runStatus];
 

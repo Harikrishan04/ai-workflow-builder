@@ -1,89 +1,40 @@
 table:
   name: workflow_triggers
   schema: public
-
 object_relationships:
   - name: workflow
     using:
       foreign_key_constraint_on: workflow_id
-
-# editor cannot insert webhook triggers (owner-only)
-select_permissions:
-  - role: viewer
+insert_permissions:
+  - role: user
     permission:
+      check:
+        workflow:
+          organization:
+            org_members:
+              _and:
+                - user_id:
+                    _eq: X-Hasura-User-Id
+                - role:
+                    _in:
+                      - owner
+                      - editor
+      columns:
+        - workflow_id
+        - trigger_type
+        - config
+select_permissions:
+  - role: user
+    permission:
+      columns: '*'
       filter:
         workflow:
           organization:
             org_members:
               user_id:
                 _eq: X-Hasura-User-Id
-      columns:
-        - id
-        - workflow_id
-        - trigger_type
-        - config
-  - role: editor
-    permission:
-      filter:
-        workflow:
-          organization:
-            org_members:
-              _and:
-                - user_id:
-                    _eq: X-Hasura-User-Id
-                - role:
-                    _in: [editor, owner]
-      columns: "*"
-  - role: owner
-    permission:
-      filter:
-        workflow:
-          organization:
-            org_members:
-              _and:
-                - user_id:
-                    _eq: X-Hasura-User-Id
-                - role:
-                    _eq: owner
-      columns: "*"
-
-insert_permissions:
-  - role: editor
-    permission:
-      check:
-        _and:
-          - workflow:
-              organization:
-                org_members:
-                  _and:
-                    - user_id:
-                        _eq: X-Hasura-User-Id
-                    - role:
-                        _in: [editor, owner]
-          - trigger_type:
-              _nin: [webhook]   # owner-only trigger type
-      columns:
-        - workflow_id
-        - trigger_type
-        - config
-  - role: owner
-    permission:
-      check:
-        workflow:
-          organization:
-            org_members:
-              _and:
-                - user_id:
-                    _eq: X-Hasura-User-Id
-                - role:
-                    _eq: owner
-      columns:
-        - workflow_id
-        - trigger_type
-        - config
-
 delete_permissions:
-  - role: owner
+  - role: user
     permission:
       filter:
         workflow:

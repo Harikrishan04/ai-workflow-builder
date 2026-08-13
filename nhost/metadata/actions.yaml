@@ -1,59 +1,22 @@
 actions:
-  - name: triggerWorkflowRun
-    definition:
-      kind: synchronous
-      handler: "{{NHOST_FUNCTIONS_URL}}/trigger-workflow-run"
-      timeout: 300
-      request_transform:
-        method: POST
-        content_type: application/json
-    comment: "Starts a workflow run. Enforces org membership + quota in handler."
-    permissions:
-      - role: editor
-      - role: owner
-
   - name: approveStep
     definition:
       kind: synchronous
-      handler: "{{NHOST_FUNCTIONS_URL}}/approve-step"
-      timeout: 300
-      request_transform:
-        method: POST
-        content_type: application/json
-    comment: "Approves a paused approval_gate step. Handler re-checks role from DB."
+      handler: '{{NHOST_FUNCTIONS_URL}}/approve-step'
+      forward_client_headers: true
     permissions:
-      - role: editor
-      - role: owner
-
-  - name: webhookTrigger
+      - role: user
+  - name: triggerWorkflowRun
     definition:
       kind: synchronous
-      handler: "{{NHOST_FUNCTIONS_URL}}/webhook-trigger"
-      timeout: 300
-      request_transform:
-        method: POST
-        content_type: application/json
-    comment: "Public inbound webhook endpoint for external systems to start a run."
+      handler: '{{NHOST_FUNCTIONS_URL}}/trigger-workflow-run'
+      forward_client_headers: true
     permissions:
-      - role: public   # validated by API key in handler, not by JWT
-
+      - role: user
 custom_types:
+  enums: []
+  input_objects: []
   objects:
     - name: TriggerWorkflowRunOutput
-      fields:
-        - name: run_id
-          type: uuid!
-        - name: status
-          type: String!
     - name: ApproveStepOutput
-      fields:
-        - name: success
-          type: Boolean!
-        - name: message
-          type: String!
-    - name: WebhookTriggerOutput
-      fields:
-        - name: run_id
-          type: uuid!
-        - name: status
-          type: String!
+  scalars: []

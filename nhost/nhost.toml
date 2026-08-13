@@ -1,4 +1,7 @@
 [global]
+[[global.environment]]
+name = 'GROQ_API_KEY'
+value = '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'
 
 [hasura]
 version = 'v2.48.10-ce'

@@ -87,7 +87,7 @@ export default async function handler(req: Request, res: Response): Promise<void
     // 3. LAYER 2: Verify the caller is owner/editor in the org that OWNS this run.
     //    This is the critical check. An Org B editor cannot approve Org A's step,
     //    even if they somehow know the step_run_id (e.g., by guessing a UUID).
-    await requireRole(session.userId, stepRun.workflow_run.org_id, ['owner', 'editor']);
+    await requireRole(session.userId, stepRun.workflow_run.org_id, ['owner', 'editor'], session.role);
 
     // 4. Mark the step_run as completed, recording who approved it and when
     await adminQuery(
@@ -105,8 +105,9 @@ export default async function handler(req: Request, res: Response): Promise<void
       { id: stepRunId, approvedBy: session.userId }
     );
 
-    // 5. Advance the run: set resume_index to the step AFTER the approval gate
-    const nextStepIndex = stepRun.step_order + 1;
+    // 5. Advance the run: set resume_index to the step AFTER the approval gate (0-indexed)
+    // If approval gate step_order is 2, the next step in 0-indexed array is index 2.
+    const nextStepIndex = stepRun.step_order;
     await adminQuery(
       `mutation ResumeRun($id: uuid!, $resumeIndex: Int!) {
         update_workflow_runs_by_pk(
@@ -136,7 +137,10 @@ export default async function handler(req: Request, res: Response): Promise<void
         body: JSON.stringify({
           // Reconstruct a minimal Action payload to re-enter the executor
           action: { name: 'triggerWorkflowRun' },
-          input: { workflow_id: stepRun.workflow_run.workflow_id },
+          input: {
+            workflow_id: stepRun.workflow_run.workflow_id,
+            resume_from_run_id: stepRun.workflow_run.id,
+          },
           session_variables: {
             'x-hasura-user-id': session.userId,
             'x-hasura-role': 'owner',

@@ -1,0 +1,40 @@
+
+added 45 packages, and audited 46 packages in 3s
+
+8 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+{"log":"Rebuilt from approve-step.ts","path":"/approve-step","level":"INFO"}
+{"log":"Rebuilt from notify-handler.ts","path":"/notify-handler","level":"INFO"}
+{"log":"Rebuilt from scheduled-runner.ts","path":"/scheduled-runner","level":"INFO"}
+{"log":"Rebuilt from trigger-workflow-run.ts","path":"/trigger-workflow-run","level":"INFO"}
+{"log":"Rebuilt from webhook-trigger.ts","path":"/webhook-trigger","level":"INFO"}
+Listening on port 3000
+{"log":"Rebuilt from approve-step.ts","path":"/approve-step","level":"INFO"}
+{"log":"Rebuilt from notify-handler.ts","path":"/notify-handler","level":"INFO"}
+{"log":"Rebuilt from scheduled-runner.ts","path":"/scheduled-runner","level":"INFO"}
+{"log":"Rebuilt from trigger-workflow-run.ts","path":"/trigger-workflow-run","level":"INFO"}
+{"log":"Rebuilt from webhook-trigger.ts","path":"/webhook-trigger","level":"INFO"}
+{"invocationId":"73224fb6-2a66-466c-8bcd-6e0b20a8c220","metrics":{"durationMs":162.187,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":161.324,"name":"responseLatency","start":"2026-08-13T08:52:53.188Z"},{"durationMs":0.863,"name":"responseDuration","start":"2026-08-13T08:52:53.349Z"}],"status":"success"}
+{"invocationId":"b4861254-808d-4ada-925d-a25e57cdaefa","metrics":{"durationMs":90.162,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":89.827,"name":"responseLatency","start":"2026-08-13T08:52:53.263Z"},{"durationMs":0.335,"name":"responseDuration","start":"2026-08-13T08:52:53.352Z"}],"status":"success"}
+{"invocationId":"e0f132c6-e65b-4751-8506-8e541f9c3af3","metrics":{"durationMs":94.105,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":93.685,"name":"responseLatency","start":"2026-08-13T08:52:53.261Z"},{"durationMs":0.42,"name":"responseDuration","start":"2026-08-13T08:52:53.354Z"}],"status":"success"}
+{"invocationId":"093a2b14-26d0-44f6-931b-72920fd94dc5","metrics":{"durationMs":16.249,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":15.975,"name":"responseLatency","start":"2026-08-13T08:53:01.092Z"},{"durationMs":0.274,"name":"responseDuration","start":"2026-08-13T08:53:01.107Z"}],"status":"success"}
+(node:52) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{"invocationId":"8088ab71-8c21-40d1-8944-3200abf20691","metrics":{"durationMs":1.473,"producedBytes":59},"path":"/trigger-workflow-run","spans":[{"durationMs":1.068,"name":"responseLatency","start":"2026-08-13T08:53:29.962Z"},{"durationMs":0.405,"name":"responseDuration","start":"2026-08-13T08:53:29.963Z"}],"status":"success"}
+{"invocationId":"91cad2ef-5599-4615-a498-e57e2dca37dd","metrics":{"durationMs":61.083,"producedBytes":86},"path":"/trigger-workflow-run","spans":[{"durationMs":60.869,"name":"responseLatency","start":"2026-08-13T08:53:44.616Z"},{"durationMs":0.214,"name":"responseDuration","start":"2026-08-13T08:53:44.676Z"}],"status":"error"}
+{"invocationId":"86547404-d72e-4eec-9c56-8c8b5a11fbfd","metrics":{"durationMs":15.509,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":15.204,"name":"responseLatency","start":"2026-08-13T08:54:03.419Z"},{"durationMs":0.305,"name":"responseDuration","start":"2026-08-13T08:54:03.434Z"}],"status":"success"}
+{"invocationId":"2cf2ff2c-fa3d-45df-94f8-24e63dccee68","metrics":{"durationMs":17.982,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":17.693,"name":"responseLatency","start":"2026-08-13T08:55:03.526Z"},{"durationMs":0.289,"name":"responseDuration","start":"2026-08-13T08:55:03.543Z"}],"status":"success"}
+{"log":"Rebuilt from approve-step.ts","path":"/approve-step","level":"INFO"}
+{"log":"Rebuilt from notify-handler.ts","path":"/notify-handler","level":"INFO"}
+{"log":"Rebuilt from scheduled-runner.ts","path":"/scheduled-runner","level":"INFO"}
+{"log":"Rebuilt from trigger-workflow-run.ts","path":"/trigger-workflow-run","level":"INFO"}
+{"log":"Rebuilt from webhook-trigger.ts","path":"/webhook-trigger","level":"INFO"}
+{"log":"Trigger workflow run error: Error: Hasura GraphQL error: null value found for non-nullable type: \"jsonb!\"\n    at De (/nix/store/90jjf18mlyl9yf51l81c5gsi0asgz66v-tmp-file/nix/store/hkfcrk8kx6vlkhjhcrlmydzcqggn6ccv-project-dir/opt/project/functions/_utils/hasura.ts:49:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a5 (/nix/store/90jjf18mlyl9yf51l81c5gsi0asgz66v-tmp-file/nix/store/hkfcrk8kx6vlkhjhcrlmydzcqggn6ccv-project-dir/opt/project/functions/trigger-workflow-run.ts:104:16)\n    at async r5 (/nix/store/90jjf18mlyl9yf51l81c5gsi0asgz66v-tmp-file/nix/store/hkfcrk8kx6vlkhjhcrlmydzcqggn6ccv-project-dir/opt/project/functions/trigger-workflow-run.ts:378:23)","path":"/trigger-workflow-run","invocationId":"dfd5d936-0cfb-4080-a198-52a0587eace5","level":"ERROR"}
+{"invocationId":"dfd5d936-0cfb-4080-a198-52a0587eace5","metrics":{"durationMs":81.418,"producedBytes":86},"path":"/trigger-workflow-run","spans":[{"durationMs":80.979,"name":"responseLatency","start":"2026-08-13T08:55:13.546Z"},{"durationMs":0.439,"name":"responseDuration","start":"2026-08-13T08:55:13.626Z"}],"status":"error"}
+{"invocationId":"0b535f2a-4127-497c-bb97-1c3904148645","metrics":{"durationMs":14.61,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":14.187,"name":"responseLatency","start":"2026-08-13T08:56:03.673Z"},{"durationMs":0.423,"name":"responseDuration","start":"2026-08-13T08:56:03.687Z"}],"status":"success"}
+{"invocationId":"8b8b121e-321d-4c8c-9c8d-db02729b8aa6","metrics":{"durationMs":16.923,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":16.392,"name":"responseLatency","start":"2026-08-13T08:57:03.780Z"},{"durationMs":0.531,"name":"responseDuration","start":"2026-08-13T08:57:03.796Z"}],"status":"success"}
+{"invocationId":"976d516d-c3f0-4f6c-8acb-36d218d0a1c9","metrics":{"durationMs":16.428,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":16.134,"name":"responseLatency","start":"2026-08-13T08:58:03.892Z"},{"durationMs":0.294,"name":"responseDuration","start":"2026-08-13T08:58:03.908Z"}],"status":"success"}
+{"invocationId":"7ce64130-1ffd-474b-b6eb-fdb62e8d3a6d","metrics":{"durationMs":19.851,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":19.419,"name":"responseLatency","start":"2026-08-13T08:59:04.012Z"},{"durationMs":0.432,"name":"responseDuration","start":"2026-08-13T08:59:04.031Z"}],"status":"success"}
+{"invocationId":"2529e517-6656-4c12-855e-865604b80235","metrics":{"durationMs":36.169,"producedBytes":33},"path":"/scheduled-runner","spans":[{"durationMs":35.382,"name":"responseLatency","start":"2026-08-13T09:00:04.124Z"},{"durationMs":0.787,"name":"responseDuration","start":"2026-08-13T09:00:04.159Z"}],"status":"success"}

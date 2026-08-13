@@ -1,12 +1,12 @@
-cron_triggers:
-  - name: scheduled_workflow_runner
-    webhook: "{{NHOST_FUNCTIONS_URL}}/scheduled-runner"
-    schedule: "* * * * *"   # every minute
-    include_in_metadata: true
-    payload: {}
-    retry_conf:
-      num_retries: 3
-      timeout_seconds: 60
-      tolerance_seconds: 21600
-      retry_interval_seconds: 10
-    comment: "Checks for workflow_triggers of type 'scheduled' that are due and starts a run."
+- name: scheduled_workflow_runner
+  webhook: '{{NHOST_FUNCTIONS_URL}}/scheduled-runner'
+  schedule: '* * * * *'
+  include_in_metadata: true
+  payload: {}
+  retry_conf:
+    num_retries: 2
+    retry_interval_seconds: 15
+    timeout_seconds: 30
+  headers:
+    - name: x-nhost-webhook-secret
+      value_from_env: NHOST_WEBHOOK_SECRET

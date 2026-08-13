@@ -1,0 +1,100 @@
+1. Triggering workflow run...
+(node:118575) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Run started with ID: 7305fb32-2a07-425f-b90a-f614f2948da8
+2. Waiting for step to reach paused state (approval gate)...
+Poll 1: 1=completed, 2=paused
+
+3. Reached Approval Gate. Output from previous step: {
+  text: 'Neutral',
+  model: 'llama-3.1-8b-instant',
+  usage: {
+    queue_time: 0.049704784,
+    total_time: 0.014267688,
+    prompt_time: 0.005630016,
+    total_tokens: 82,
+    prompt_tokens: 80,
+    completion_time: 0.008637672,
+    completion_tokens: 2
+  }
+}
+Approving step 48c986cb-3888-490a-9a2f-1c56014ae464...
+Approval success! {
+  success: true,
+  message: 'Step approved. Workflow resuming from step 2.'
+}
+4. Waiting for workflow to complete...
+Poll 1: Workflow=completed, Steps=1=completed, 2=completed, 3=completed, 4=skipped
+
+Final Step Runs:
+[
+  {
+    "id": "b6f60a45-bd26-4b0c-95cb-5884663a6e6a",
+    "step_order": 1,
+    "status": "completed",
+    "output": {
+      "text": "Neutral",
+      "model": "llama-3.1-8b-instant",
+      "usage": {
+        "queue_time": 0.049704784,
+        "total_time": 0.014267688,
+        "prompt_time": 0.005630016,
+        "total_tokens": 82,
+        "prompt_tokens": 80,
+        "completion_time": 0.008637672,
+        "completion_tokens": 2
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "48c986cb-3888-490a-9a2f-1c56014ae464",
+    "step_order": 2,
+    "status": "completed",
+    "output": {
+      "text": "Neutral",
+      "model": "llama-3.1-8b-instant",
+      "usage": {
+        "queue_time": 0.049704784,
+        "total_time": 0.014267688,
+        "prompt_time": 0.005630016,
+        "total_tokens": 82,
+        "prompt_tokens": 80,
+        "completion_time": 0.008637672,
+        "completion_tokens": 2
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "3fbd0606-1dac-4fc9-876a-846c78d16980",
+    "step_order": 3,
+    "status": "completed",
+    "output": {
+      "value": "Positive",
+      "branch": "false",
+      "condition": "contains",
+      "evaluated_on": {
+        "text": "Neutral",
+        "model": "llama-3.1-8b-instant",
+        "usage": {
+          "queue_time": 0.049704784,
+          "total_time": 0.014267688,
+          "prompt_time": 0.005630016,
+          "total_tokens": 82,
+          "prompt_tokens": 80,
+          "completion_time": 0.008637672,
+          "completion_tokens": 2
+        }
+      }
+    },
+    "error": null
+  },
+  {
+    "id": "a3029274-a4b4-4324-8dc1-caf8ade5b541",
+    "step_order": 4,
+    "status": "skipped",
+    "output": null,
+    "error": null
+  }
+]

@@ -1,7 +1,6 @@
 table:
   name: step_runs
   schema: public
-
 object_relationships:
   - name: workflow_run
     using:
@@ -9,57 +8,30 @@ object_relationships:
   - name: workflow_step
     using:
       foreign_key_constraint_on: step_id
-
-# step_runs are read-only via GraphQL for all roles.
-# All writes happen through the Action handler using admin secret.
-# The subscription filter on run_id is the main UI access pattern.
 select_permissions:
-  - role: viewer
+  - role: user
     permission:
+      columns: '*'
       filter:
         workflow_run:
-          workflow:
-            organization:
-              org_members:
-                user_id:
-                  _eq: X-Hasura-User-Id
-      columns:
-        - id
-        - run_id
-        - step_id
-        - step_order
-        - status
-        - input
-        - output
-        - error
-        - attempt_count
-        - approved_by
-        - approved_at
-        - started_at
-        - finished_at
-  - role: editor
-    permission:
-      filter:
-        workflow_run:
-          workflow:
-            organization:
-              org_members:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - role:
-                      _in: [editor, owner]
-      columns: "*"
-  - role: owner
-    permission:
-      filter:
-        workflow_run:
-          workflow:
-            organization:
-              org_members:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - role:
-                      _eq: owner
-      columns: "*"
+          organization:
+            org_members:
+              user_id:
+                _eq: X-Hasura-User-Id
+event_triggers:
+  - name: notify_step_completed
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - status
+    retry_conf:
+      interval_sec: 10
+      num_retries: 3
+      timeout_sec: 30
+    webhook: '{{NHOST_FUNCTIONS_URL}}/notify-handler'
+    headers:
+      - name: x-nhost-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET

@@ -1,14 +1,18 @@
 table:
   name: workflows
   schema: public
-
-# ---------- Relationships ----------
 object_relationships:
   - name: organization
     using:
       foreign_key_constraint_on: org_id
-
 array_relationships:
+  - name: workflow_runs
+    using:
+      foreign_key_constraint_on:
+        column: workflow_id
+        table:
+          name: workflow_runs
+          schema: public
   - name: workflow_steps
     using:
       foreign_key_constraint_on:
@@ -23,95 +27,42 @@ array_relationships:
         table:
           name: workflow_triggers
           schema: public
-  - name: workflow_runs
-    using:
-      foreign_key_constraint_on:
-        column: workflow_id
-        table:
-          name: workflow_runs
-          schema: public
-
-# ---------- Permissions ----------
-# KEY INSIGHT: The filter "organization -> org_members -> user_id = me"
-# means: "only show workflows whose org has me as a member."
-# An Org B user querying Org A workflows gets 0 rows, not a 403 —
-# they can't even confirm the workflow exists.
-
-select_permissions:
-  - role: viewer
+insert_permissions:
+  - role: user
     permission:
-      filter:
+      check:
         organization:
           org_members:
-            user_id:
-              _eq: X-Hasura-User-Id
+            _and:
+              - user_id:
+                  _eq: X-Hasura-User-Id
+              - role:
+                  _in:
+                    - owner
+                    - editor
+      set:
+        created_by: X-Hasura-User-Id
       columns:
         - id
         - org_id
         - name
         - description
-        - created_at
-        - updated_at
-  - role: editor
+select_permissions:
+  - role: user
     permission:
+      columns: '*'
       filter:
         organization:
           org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _in: [editor, owner]
-      columns: "*"
-  - role: owner
-    permission:
-      filter:
-        organization:
-          org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _eq: owner
-      columns: "*"
-
-insert_permissions:
-  - role: editor
-    permission:
-      check:
-        organization:
-          org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _in: [editor, owner]
-      set:
-        created_by: X-Hasura-User-Id
-      columns:
-        - org_id
-        - name
-        - description
-  - role: owner
-    permission:
-      check:
-        organization:
-          org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _eq: owner
-      set:
-        created_by: X-Hasura-User-Id
-      columns:
-        - org_id
-        - name
-        - description
-
+            user_id:
+              _eq: X-Hasura-User-Id
 update_permissions:
-  - role: editor
+  - role: user
     permission:
+      columns:
+        - name
+        - description
+        - updated_at
       filter:
         organization:
           org_members:
@@ -119,30 +70,12 @@ update_permissions:
               - user_id:
                   _eq: X-Hasura-User-Id
               - role:
-                  _in: [editor, owner]
+                  _in:
+                    - owner
+                    - editor
       check: {}
-      columns:
-        - name
-        - description
-        - updated_at
-  - role: owner
-    permission:
-      filter:
-        organization:
-          org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _eq: owner
-      check: {}
-      columns:
-        - name
-        - description
-        - updated_at
-
 delete_permissions:
-  - role: owner
+  - role: user
     permission:
       filter:
         organization:

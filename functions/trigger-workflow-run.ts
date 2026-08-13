@@ -96,6 +96,42 @@ async function createWorkflowRun(
   return data.insert_workflow_runs_one;
 }
 
+async function getWorkflowRun(runId: string): Promise<WorkflowRun | null> {
+  const data = await adminQuery<{
+    workflow_runs_by_pk: WorkflowRun | null;
+  }>(
+    `query GetRun($id: uuid!) {
+      workflow_runs_by_pk(id: $id) {
+        id org_id resume_index
+      }
+    }`,
+    { id: runId }
+  );
+  return data.workflow_runs_by_pk;
+}
+
+async function getLastCompletedStepOutput(runId: string): Promise<unknown> {
+  const data = await adminQuery<{
+    step_runs: Array<{ output: unknown }>;
+  }>(
+    `query GetLastCompletedStep($runId: uuid!) {
+      step_runs(
+        where: {
+          run_id: { _eq: $runId }
+          status: { _eq: completed }
+          output: { _is_null: false }
+        }
+        order_by: { step_order: desc }
+        limit: 1
+      ) {
+        output
+      }
+    }`,
+    { runId }
+  );
+  return data.step_runs[0]?.output ?? null;
+}
+
 async function createStepRun(
   runId: string,
   step: WorkflowStep,
@@ -104,7 +140,7 @@ async function createStepRun(
   const data = await adminQuery<{
     insert_step_runs_one: StepRun;
   }>(
-    `mutation CreateStepRun($runId: uuid!, $stepId: uuid!, $stepOrder: Int!, $input: jsonb!) {
+    `mutation CreateStepRun($runId: uuid!, $stepId: uuid!, $stepOrder: Int!, $input: jsonb) {
       insert_step_runs_one(object: {
         run_id: $runId
         step_id: $stepId
@@ -129,47 +165,44 @@ async function updateStepRun(
     attempt_count?: number;
   }
 ) {
+  const setPayload: Record<string, unknown> = {
+    status: update.status,
+    output: update.output ?? null,
+    error: update.error ?? null,
+    finished_at: ['completed', 'failed', 'skipped'].includes(update.status) ? 'now()' : null,
+  };
+  if (update.attempt_count !== undefined) {
+    setPayload.attempt_count = update.attempt_count;
+  }
+
   await adminQuery(
-    `mutation UpdateStepRun($id: uuid!, $status: step_run_status!, $output: jsonb, $error: String, $attemptCount: Int) {
+    `mutation UpdateStepRun($id: uuid!, $set: step_runs_set_input!) {
       update_step_runs_by_pk(
         pk_columns: { id: $id }
-        _set: {
-          status: $status
-          output: $output
-          error: $error
-          attempt_count: $attemptCount
-          finished_at: "now()"
-        }
+        _set: $set
       ) { id }
     }`,
-    {
-      id: stepRunId,
-      status: update.status,
-      output: update.output ?? null,
-      error: update.error ?? null,
-      attemptCount: update.attempt_count ?? null,
-    }
+    { id: stepRunId, set: setPayload }
   );
 }
 
 async function updateRunStatus(runId: string, status: string, resumeIndex?: number) {
+  const setPayload: Record<string, unknown> = {
+    status,
+    finished_at: ['completed', 'failed'].includes(status) ? 'now()' : null,
+  };
+  if (resumeIndex !== undefined) {
+    setPayload.resume_index = resumeIndex;
+  }
+
   await adminQuery(
-    `mutation UpdateRunStatus($id: uuid!, $status: run_status!, $resumeIndex: Int, $finishedAt: timestamptz) {
+    `mutation UpdateRunStatus($id: uuid!, $set: workflow_runs_set_input!) {
       update_workflow_runs_by_pk(
         pk_columns: { id: $id }
-        _set: {
-          status: $status
-          resume_index: $resumeIndex
-          finished_at: $finishedAt
-        }
+        _set: $set
       ) { id }
     }`,
-    {
-      id: runId,
-      status,
-      resumeIndex: resumeIndex ?? null,
-      finishedAt: ['completed', 'failed'].includes(status) ? 'now()' : null,
-    }
+    { id: runId, set: setPayload }
   );
 }
 
@@ -183,7 +216,10 @@ async function executeLlmCall(
   config: Record<string, unknown>,
   previousOutput: unknown
 ): Promise<unknown> {
-  const model = (config['model'] as string) || 'llama3-8b-8192';
+  let model = (config['model'] as string) || 'llama-3.1-8b-instant';
+  if (model === 'llama3-8b-8192' || model === 'llama3-70b-8192') {
+    model = 'llama-3.1-8b-instant';
+  }
   const systemPrompt = (config['system_prompt'] as string) || 'You are a helpful assistant.';
   const userPrompt = (config['user_prompt'] as string) || '';
 
@@ -208,6 +244,26 @@ async function executeLlmCall(
   };
 }
 
+function injectPreviousOutput(template: unknown, previousOutput: unknown): unknown {
+  if (typeof template === 'string') {
+    if (template === '{{previousOutput}}') {
+      return previousOutput;
+    }
+    return template.replace('{{previousOutput}}', typeof previousOutput === 'string' ? previousOutput : JSON.stringify(previousOutput));
+  }
+  if (Array.isArray(template)) {
+    return template.map((item) => injectPreviousOutput(item, previousOutput));
+  }
+  if (template !== null && typeof template === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(template)) {
+      result[key] = injectPreviousOutput(value, previousOutput);
+    }
+    return result;
+  }
+  return template;
+}
+
 /**
  * http_request: Calls any external HTTP endpoint.
  * Supports GET/POST/PUT with configurable headers and body.
@@ -223,18 +279,13 @@ async function executeHttpRequest(
 
   if (!url) throw new Error('http_request step requires a url in config');
 
-  // Allow body to reference previous output via {{previousOutput}}
-  const bodyStr = bodyTemplate
-    ? JSON.stringify(bodyTemplate).replace(
-        '{{previousOutput}}',
-        JSON.stringify(previousOutput)
-      )
-    : undefined;
+  const injectedBody = bodyTemplate !== undefined ? injectPreviousOutput(bodyTemplate, previousOutput) : undefined;
+  const bodyStr = injectedBody !== undefined ? (typeof injectedBody === 'string' ? injectedBody : JSON.stringify(injectedBody)) : undefined;
 
   const response = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json', ...headers },
-    body: bodyStr,
+    body: ['GET', 'HEAD'].includes(method) ? undefined : bodyStr,
   });
 
   const responseText = await response.text();
@@ -318,7 +369,7 @@ async function executeConditionalBranch(
       `Does the following text satisfy the condition? Answer only YES or NO.\nText: ${JSON.stringify(previousOutput)}`;
 
     const completion = await groq.chat.completions.create({
-      model: 'llama3-8b-8192',
+      model: 'llama-3.1-8b-instant',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 5,
     });
@@ -354,7 +405,7 @@ export default async function handler(req: Request, res: Response): Promise<void
 
     // 3. LAYER 2: Re-query the DB to verify caller's role in this specific org
     //    We do NOT trust X-Hasura-Role from the session variables alone.
-    await requireRole(session.userId, workflow.org_id, ['owner', 'editor']);
+    await requireRole(session.userId, workflow.org_id, ['owner', 'editor'], session.role);
 
     // 4. Check quota BEFORE creating a run (fail fast)
     const quotaOk = await hasQuotaRemaining(workflow.org_id);
@@ -363,13 +414,30 @@ export default async function handler(req: Request, res: Response): Promise<void
       return;
     }
 
-    // 5. Create the workflow_run record. org_id is set HERE, server-side —
-    //    never from client input. This prevents org hijacking.
-    const run = await createWorkflowRun(workflowId, workflow.org_id, 'manual');
-    let resumeIndex = run.resume_index; // 0 for new runs, N for resumed runs
+    const resumeRunId = input.resume_from_run_id || ((req.body as Record<string, unknown>)['_internal_resume_run_id'] as string | undefined);
+
+    let run: WorkflowRun;
+    let resumeIndex: number;
+    let previousOutput: unknown = null;
+
+    if (resumeRunId) {
+      const existingRun = await getWorkflowRun(resumeRunId);
+      if (!existingRun) {
+        res.status(404).json({ message: 'Run to resume not found' });
+        return;
+      }
+      run = existingRun;
+      resumeIndex = existingRun.resume_index;
+      previousOutput = await getLastCompletedStepOutput(run.id);
+      await updateRunStatus(run.id, 'running', resumeIndex);
+    } else {
+      // 5. Create the workflow_run record. org_id is set HERE, server-side —
+      //    never from client input. This prevents org hijacking.
+      run = await createWorkflowRun(workflowId, workflow.org_id, 'manual');
+      resumeIndex = 0;
+    }
 
     const steps = workflow.workflow_steps;
-    let previousOutput: unknown = null;
     let runFailed = false;
 
     // 6. Execute each step in order, starting from resumeIndex
@@ -437,8 +505,8 @@ export default async function handler(req: Request, res: Response): Promise<void
           // Set the step_run to paused. The subscription on the frontend
           // will immediately show the "Awaiting Approval" state.
           // Set resume_index so approveStep knows where to continue from.
-          await updateStepRun(stepRun.id, { status: 'paused' });
-          await updateRunStatus(run.id, 'paused', i); // i = step index to resume from
+          await updateStepRun(stepRun.id, { status: 'paused', output: previousOutput });
+          await updateRunStatus(run.id, 'paused', i + 1); // Next step index to resume from
 
           res.status(200).json({
             run_id: run.id,
@@ -483,6 +551,7 @@ export default async function handler(req: Request, res: Response): Promise<void
     });
 
   } catch (error) {
+    console.error('Trigger workflow run error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     const status = (error as { status?: number }).status ?? 500;
     res.status(status).json({ message });

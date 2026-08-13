@@ -1,89 +1,18 @@
 table:
   name: org_members
   schema: public
-
-# ---------- Relationships ----------
 object_relationships:
   - name: organization
     using:
       foreign_key_constraint_on: org_id
-
-# ---------- Permissions ----------
-# Only owner can manage membership.
-# All roles can read members of their own org.
-# Filter: org_id must match an org the caller belongs to.
-
 select_permissions:
-  - role: viewer
+  - role: user
     permission:
-      filter:
-        org_id:
-          _in: X-Hasura-Org-Ids   # session var — list of orgs caller belongs to
       columns:
         - id
         - org_id
         - user_id
         - role
-  - role: editor
-    permission:
       filter:
-        org_id:
-          _in: X-Hasura-Org-Ids
-      columns:
-        - id
-        - org_id
-        - user_id
-        - role
-  - role: owner
-    permission:
-      filter:
-        org_id:
-          _in: X-Hasura-Org-Ids
-      columns: "*"
-
-insert_permissions:
-  - role: owner
-    permission:
-      check:
-        _and:
-          - org_id:
-              _in: X-Hasura-Org-Ids
-          # Only owners of the org can add members
-          - organization:
-              org_members:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - role:
-                      _eq: owner
-      columns:
-        - org_id
-        - user_id
-        - role
-
-update_permissions:
-  - role: owner
-    permission:
-      filter:
-        organization:
-          org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _eq: owner
-      check: {}
-      columns:
-        - role
-
-delete_permissions:
-  - role: owner
-    permission:
-      filter:
-        organization:
-          org_members:
-            _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - role:
-                  _eq: owner
+        user_id:
+          _eq: X-Hasura-User-Id
