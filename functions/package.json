@@ -6,8 +6,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "groq-sdk": "^0.7.0",
-    "node-fetch": "^3.3.2"
+    "groq-sdk": "^0.7.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
