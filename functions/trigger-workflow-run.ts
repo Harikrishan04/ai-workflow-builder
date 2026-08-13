@@ -24,8 +24,16 @@ import { parseSessionVars, requireRole } from './_utils/auth';
 import { hasQuotaRemaining, incrementQuota } from './_utils/quota';
 import { withRetry } from './_utils/retry';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
+let groq: Groq | null = null;
+function getGroqClient() {
+  if (!groq) {
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error("GROQ_API_KEY environment variable is missing!");
+    }
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  }
+  return groq;
+}
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface WorkflowStep {
@@ -227,7 +235,7 @@ async function executeLlmCall(
     ? `${userPrompt}\n\nContext from previous step:\n${JSON.stringify(previousOutput, null, 2)}`
     : userPrompt;
 
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroqClient().chat.completions.create({
     model,
     messages: [
       { role: 'system', content: systemPrompt },
@@ -368,7 +376,7 @@ async function executeConditionalBranch(
     const prompt = (config['llm_prompt'] as string) ||
       `Does the following text satisfy the condition? Answer only YES or NO.\nText: ${JSON.stringify(previousOutput)}`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 5,
