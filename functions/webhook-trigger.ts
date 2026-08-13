@@ -14,8 +14,8 @@
  */
 
 import type { Request, Response } from 'express';
-import { adminQuery } from './_utils/hasura.js';
-import { hasQuotaRemaining } from './_utils/quota.js';
+import { adminQuery } from './_utils/hasura';
+import { hasQuotaRemaining } from './_utils/quota';
 
 interface WebhookTriggerConfig {
   api_key: string;

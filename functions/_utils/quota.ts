@@ -9,7 +9,7 @@
  * rather than running to completion and then reporting an error.
  */
 
-import { adminQuery } from './hasura.js';
+import { adminQuery } from './hasura';
 
 interface OrgQuota {
   id: string;

@@ -10,8 +10,8 @@
  */
 
 import type { Request, Response } from 'express';
-import { adminQuery } from './_utils/hasura.js';
-import { hasQuotaRemaining } from './_utils/quota.js';
+import { adminQuery } from './_utils/hasura';
+import { hasQuotaRemaining } from './_utils/quota';
 
 // Simple cron check: does the trigger's cron expression match "now"?
 // For production, use the 'cron-parser' package. Here we demonstrate

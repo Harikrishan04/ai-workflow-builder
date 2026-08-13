@@ -19,10 +19,10 @@
 
 import type { Request, Response } from 'express';
 import Groq from 'groq-sdk';
-import { adminQuery } from './_utils/hasura.js';
-import { parseSessionVars, requireRole } from './_utils/auth.js';
-import { hasQuotaRemaining, incrementQuota } from './_utils/quota.js';
-import { withRetry } from './_utils/retry.js';
+import { adminQuery } from './_utils/hasura';
+import { parseSessionVars, requireRole } from './_utils/auth';
+import { hasQuotaRemaining, incrementQuota } from './_utils/quota';
+import { withRetry } from './_utils/retry';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 

@@ -21,8 +21,8 @@
  */
 
 import type { Request, Response } from 'express';
-import { adminQuery } from './_utils/hasura.js';
-import { parseSessionVars, requireRole } from './_utils/auth.js';
+import { adminQuery } from './_utils/hasura';
+import { parseSessionVars, requireRole } from './_utils/auth';
 
 interface StepRunDetails {
   id: string;

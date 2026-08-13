@@ -17,7 +17,7 @@
  * confirm the caller's current role in the correct org. This is Layer 2.
  */
 
-import { adminQuery } from './hasura.js';
+import { adminQuery } from './hasura';
 
 export interface SessionVars {
   userId: string;
